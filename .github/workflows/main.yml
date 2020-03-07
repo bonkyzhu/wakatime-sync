@@ -1,5 +1,5 @@
 name: Update gist with WakaTime summary
-on:
+on: push
   schedule:
     - cron: '40 9 * * *'
 jobs:
