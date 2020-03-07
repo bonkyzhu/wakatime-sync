@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - name: Update gist
+      - name: Update
         uses: superman66/wakatime-sync@master
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
