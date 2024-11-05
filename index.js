@@ -7,7 +7,7 @@ const Axios = require('axios')
 const { WAKATIME_API_KEY, GH_TOKEN, GIST_ID, SCU_KEY } = process.env
 const BASE_URL = 'https://wakatime.com/api/v1'
 const summariesApi = `${BASE_URL}/users/current/summaries`
-const scuPushApi = `https://sc.ftqq.com`
+const scuPushApi = `https://sctapi.ftqq.com`
 
 const wakatime = new WakaTimeClient(WAKATIME_API_KEY)
 const octokit = new Octokit({
@@ -33,23 +33,6 @@ function getMessageContent(date, summary) {
       'Editors',
       editors
     )}\n${getItemContent('Categories', categories)}\n`
-  }
-}
-async function main() {
-  const yesterday = dayjs()
-    .subtract(1, 'day')
-    .format('YYYY-MM-DD')
-  try {
-    const mySummary = await getMySummary(yesterday)
-    await updateGist(yesterday, mySummary.data)
-    await sendMessageToWechat(
-      `${yesterday} update successfully!`,
-      getMessageContent(yesterday, mySummary.data)
-    )
-    console.log(`${yesterday} update successfully!`, getMessageContent(yesterday, mySummary.data))
-  } catch (error) {
-    console.error(`Unable to fetch wakatime summary\n ${error} `)
-    await sendMessageToWechat(`[${yesterday}]failed to update wakatime data!`)
   }
 }
 
@@ -98,6 +81,31 @@ async function sendMessageToWechat(text, desp) {
       }
     }).then(response => response.data)
   }
+}
+
+const fetchSummaryWithRetry = async times => {
+  const yesterday = dayjs()
+    .subtract(1, 'day')
+    .format('YYYY-MM-DD')
+  try {
+    const mySummary = await getMySummary(yesterday)
+    await updateGist(yesterday, mySummary.data)
+    await sendMessageToWechat(
+      `${yesterday} update successfully!`,
+      getMessageContent(yesterday, mySummary.data)
+    )
+  } catch (error) {
+    if (times === 1) {
+      console.error(`Unable to fetch wakatime summary\n ${error} `)
+      return await sendMessageToWechat(`[${yesterday}]failed to update wakatime data!`)
+    }
+    console.log(`retry fetch summary data: ${times - 1} time`)
+    fetchSummaryWithRetry(times - 1)
+  }
+}
+
+async function main() {
+  fetchSummaryWithRetry(3)
 }
 
 main()
